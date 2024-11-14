@@ -1,2 +1,5 @@
 .DS_Store
 .vscode
+*.beam
+grm.erl
+lex.erl
