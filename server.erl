@@ -60,8 +60,17 @@ loop(State) ->
 
 %% executes join protocol from server perspective
 do_join(ChatName, ClientPID, Ref, State) ->
-    io:format("server:do_join(...): IMPLEMENT ME~n"),
-    State.
+    case maps:find(ChatName, State#serv_st.chatrooms) of
+		error ->
+			ChatPID = spawn(chatroom, start_chatroom, [ChatName]),
+			Updated_State = State#serv_st{registrations = maps:put(ChatName, [], State#serv_st.registrations), 
+											  chatrooms = maps:put(ChatName, ChatPID, State#serv_st.chatrooms)};
+		{ok, _} ->
+			Updated_State = State
+	end,
+	{ok, ClientNick} = maps:find(ClientPID, State#serv_st.nicks),
+	maps:get(ChatName, State#serv_st.chatrooms)!{self(), Ref, register, ClientPID, ClientNick},
+	Updated_State#serv_st{registrations = maps:update_with(ChatName, fun(L) -> lists:append(L, [ClientPID]) end, State#serv_st.registrations)}.
 
 %% executes leave protocol from server perspective
 do_leave(ChatName, ClientPID, Ref, State) ->

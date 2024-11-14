@@ -40,8 +40,9 @@ end,
 
 %% This function should register a new client to this chatroom
 do_register(State, Ref, ClientPID, ClientNick) ->
-    io:format("chatroom:do_register(...): IMPLEMENT ME~n"),
-    State.
+	Updated_State = State#chat_st{registrations = maps:put(ClientPID, ClientNick, State#chat_st.registrations)},
+	ClientPID!{self(), Ref, connect, Updated_State#chat_st.history},
+	Updated_State.
 
 %% This function should unregister a client from this chatroom
 do_unregister(State, ClientPID) ->

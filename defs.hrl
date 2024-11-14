@@ -18,6 +18,6 @@
 % It contains the following fields:
 %	name: that chatroom's name
 %	registrations: a map from a client's PID to a client's nickname. The map represents all registered clients
-%       history: chat history since the beginning of that chatroom
+%   history: chat history since the beginning of that chatroom
 
 -record(chat_st, {name, registrations, history}).
