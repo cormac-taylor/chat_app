@@ -88,7 +88,7 @@ loop(State, Request, Ref) ->
 
 	%% GUI requests to update nickname to Nick
 	{nick, Nick} ->
-            do_new_nick(State, Ref, Nick);
+        do_new_nick(State, Ref, Nick);
 
 	%% GUI requesting to quit completely
 	quit ->
@@ -139,8 +139,20 @@ do_leave(State, Ref, ChatName) ->
 
 %% executes `/nick` protocol from client perspective
 do_new_nick(State, Ref, NewNick) ->
-    io:format("client:do_new_nick(...): IMPLEMENT ME~n"),
-    {{dummy_target, dummy_response}, State}.
+    case State#cl_st.nick of
+		NewNick ->
+			{err_same, State};
+		_ ->
+			whereis(server)!{self(), Ref, nick, NewNick},
+			receive
+			{_, _, err_nick_used} ->
+				{err_nick_used, State};
+			% TODO
+			{} ->
+				
+			end
+	end.
+
 
 %% executes send message protocol from client perspective
 do_msg_send(State, Ref, ChatName, Message) ->
