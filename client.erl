@@ -111,16 +111,16 @@ loop(State, Request, Ref) ->
 
 %% executes `/join` protocol from client perspective
 do_join(State, Ref, ChatName) ->
-    case lists:member(ChatName, State#cl_st.con_ch) of
-	true -> 
-		{err, State};
-	false -> 
-		whereis(server)!{self(), Ref, join, ChatName},
-		receive
-		{ChatPID, Ref, connect, History} ->
-			Updated_State = State#cl_st{con_ch = maps:put(ChatName, ChatPID, State#cl_st.con_ch)},
-			{History, Updated_State}
-		end
+	case maps:find(ChatName, State#cl_st.con_ch) of
+		error ->
+			whereis(server)!{self(), Ref, join, ChatName},
+			receive
+			{ChatPID, Ref, connect, History} ->
+				Updated_State = State#cl_st{con_ch = maps:put(ChatName, ChatPID, State#cl_st.con_ch)},
+				{History, Updated_State}
+			end;
+		{ok, _} ->
+			{err, State}
 	end.
 
 %% executes `/leave` protocol from client perspective
