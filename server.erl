@@ -90,7 +90,10 @@ do_new_nick(State, Ref, ClientPID, NewNick) ->
 			State;
 		false -> 
 			Updated_State = State#serv_st{nicks = maps:put(ClientPID, NewNick, State#serv_st.nicks)},
-			% TODO send relivant chatrooms the update
+			ChatNames = maps:keys(State#serv_st.registrations),
+			RelivantChatNames = lists:filter(),
+			% [ ChatPID!{self(), Ref, update_nick, ClientPID, NewNick} || ChatPID <- ]
+			Updated_State
 		end.
 
 %% executes client quit protocol from server perspective
