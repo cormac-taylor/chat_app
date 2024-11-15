@@ -47,7 +47,7 @@ listen(State) ->
 		    ok_shutdown;
 		%% do nothing if GUI receives a quit instruction
 		ack_quit ->
-		    From ! {self(), Ref, ack_quit},
+		    From!{self(), Ref, ack_quit},
 		    listen(NextState);
 		%% if ok_msg_received, then we don't need to reply to sender.
 		ok_msg_received ->
@@ -84,7 +84,7 @@ loop(State, Request, Ref) ->
 
 	%% GUI requests the nickname of client
 	whoami ->
-	    {{dummy_target, dummy_response}, State};
+	    {State#cl_st.nick, State};
 
 	%% GUI requests to update nickname to Nick
 	{nick, Nick} ->
@@ -125,8 +125,17 @@ do_join(State, Ref, ChatName) ->
 
 %% executes `/leave` protocol from client perspective
 do_leave(State, Ref, ChatName) ->
-    io:format("client:do_leave(...): IMPLEMENT ME~n"),
-    {{dummy_target, dummy_response}, State}.
+	case maps:find(ChatName, State#cl_st.con_ch) of
+		error ->
+			{err, State};
+		{ok, _} ->
+			whereis(server)!{self(), Ref, leave, ChatName},
+			receive
+			{_, _, ack_leave} ->
+				Updated_State = State#cl_st{con_ch = maps:remove(ChatName, State#cl_st.con_ch)},				
+				{ok, Updated_State}
+			end
+	end.
 
 %% executes `/nick` protocol from client perspective
 do_new_nick(State, Ref, NewNick) ->
