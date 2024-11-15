@@ -90,9 +90,13 @@ do_new_nick(State, Ref, ClientPID, NewNick) ->
 			State;
 		false -> 
 			Updated_State = State#serv_st{nicks = maps:put(ClientPID, NewNick, State#serv_st.nicks)},
-			ChatNames = maps:keys(State#serv_st.registrations),
-			RelivantChatNames = lists:filter(),
-			% [ ChatPID!{self(), Ref, update_nick, ClientPID, NewNick} || ChatPID <- ]
+			PredRelivant = fun(ChatName) ->
+				ClientPIDS = maps:get(ChatName, Updated_State#serv_st.registrations),
+				lists:member(ClientPID, ClientPIDS)
+			end,
+			RelivantChatNames = lists:filter(PredRelivant, maps:keys(Updated_State#serv_st.registrations)),
+			[ ChatPID!{self(), Ref, update_nick, ClientPID, NewNick} || ChatPID <- RelivantChatNames ],
+			ClientPID!{self(), Ref, ok_nick},
 			Updated_State
 		end.
 
