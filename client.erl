@@ -131,7 +131,7 @@ do_leave(State, Ref, ChatName) ->
 		{ok, _} ->
 			whereis(server)!{self(), Ref, leave, ChatName},
 			receive
-			{_, _, ack_leave} ->
+			{_, Ref, ack_leave} ->
 				Updated_State = State#cl_st{con_ch = maps:remove(ChatName, State#cl_st.con_ch)},				
 				{ok, Updated_State}
 			end
@@ -145,9 +145,9 @@ do_new_nick(State, Ref, NewNick) ->
 		_ ->
 			whereis(server)!{self(), Ref, nick, NewNick},
 			receive
-			{_, _, err_nick_used} ->
+			{_, Ref, err_nick_used} ->
 				{err_nick_used, State};
-			{_, _, ok_nick} ->
+			{_, Ref, ok_nick} ->
 				{ok_nick, State#cl_st{nick = NewNick}}
 			end
 	end.
@@ -155,8 +155,12 @@ do_new_nick(State, Ref, NewNick) ->
 
 %% executes send message protocol from client perspective
 do_msg_send(State, Ref, ChatName, Message) ->
-    io:format("client:do_new_nick(...): IMPLEMENT ME~n"),
-    {{dummy_target, dummy_response}, State}.
+    ChatPID = maps:get(ChatName, State#cl_st.con_ch),
+	ChatPID!{self(), Ref, message, Message},
+	receive
+		{_, Ref, ack_msg} ->
+			{{msg_sent, State#cl_st.nick}, State}
+	end.
 
 %% executes new incoming message protocol from client perspective
 do_new_incoming_msg(State, _Ref, CliNick, ChatName, Msg) ->
