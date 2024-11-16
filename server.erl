@@ -70,8 +70,8 @@ do_join(ChatName, ClientPID, Ref, State) ->
 	end,
 	{ok, ClientNick} = maps:find(ClientPID, Updated_State#serv_st.nicks),
 	maps:get(ChatName, Updated_State#serv_st.chatrooms)!{self(), Ref, register, ClientPID, ClientNick},
-	Append = fun(L) -> lists:append(L, [ClientPID]) end,
-	Updated_State#serv_st{registrations = maps:update_with(ChatName, Append, Updated_State#serv_st.registrations)}.
+	Prepend = fun(L) -> [ ClientPID | L ] end,
+	Updated_State#serv_st{registrations = maps:update_with(ChatName, Prepend, Updated_State#serv_st.registrations)}.
 
 %% executes leave protocol from server perspective
 do_leave(ChatName, ClientPID, Ref, State) ->
@@ -102,5 +102,21 @@ do_new_nick(State, Ref, ClientPID, NewNick) ->
 
 %% executes client quit protocol from server perspective
 do_client_quit(State, Ref, ClientPID) ->
-    io:format("server:do_client_quit(...): IMPLEMENT ME~n"),
-    State.
+    Updated_State = State#serv_st{nicks = maps:remove(ClientPID, State#serv_st.nicks)},
+	PredRelivant = fun(ChatName) ->
+		ClientPIDS = maps:get(ChatName, Updated_State#serv_st.registrations),
+		lists:member(ClientPID, ClientPIDS)
+	end,
+	RelivantChatNames = lists:filter(PredRelivant, maps:keys(Updated_State#serv_st.registrations)),
+	[ maps:get(ChatPID, Updated_State#serv_st.chatrooms)!{self(), Ref, unregister, ClientPID} || ChatPID <- RelivantChatNames ],
+	RemoveFromRelivant = fun(ChatName, PIDList) ->
+		case lists:member(ChatName, RelivantChatNames) of
+			true -> 
+				lists:delete(ChatName, PIDList);
+			false ->
+				PIDList
+		end
+	end,
+	NewState = Updated_State#serv_st{registrations = maps:map(RemoveFromRelivant, Updated_State#serv_st.registrations)},
+	ClientPID!{self(), Ref, ack_quit},
+	NewState.

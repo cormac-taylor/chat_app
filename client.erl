@@ -170,5 +170,8 @@ do_new_incoming_msg(State, _Ref, CliNick, ChatName, Msg) ->
 
 %% executes quit protocol from client perspective
 do_quit(State, Ref) ->
-    io:format("client:do_new_nick(...): IMPLEMENT ME~n"),
-    {{dummy_target, dummy_response}, State}.
+    whereis(server)!{self(), Ref, quit},
+	receive
+		{_, Ref, ack_quit} ->
+			{ack_quit, State}
+	end.
